@@ -129,6 +129,10 @@ export async function POST(request: NextRequest) {
     console.log('Connecting to database...');
     await dbConnect();
     console.log('Database connected successfully');
+    
+    // Log request details
+    console.log('Request method:', request.method);
+    console.log('Request headers:', Object.fromEntries(request.headers.entries()));
 
     // Check content type to handle both JSON and FormData
     const contentType = request.headers.get('content-type') || '';
@@ -175,6 +179,19 @@ export async function POST(request: NextRequest) {
     const city = formData.get('city') as string;
     const address = formData.get('address') as string;
 
+    console.log('Extracted campaign data:', {
+      title,
+      description: description?.substring(0, 50) + '...',
+      shortDescription,
+      category,
+      goalAmount,
+      currency,
+      startDate,
+      endDate,
+      creatorWalletAddress,
+      tags
+    });
+
     // Validate required fields
     if (!title || !description || !shortDescription || !category || !goalAmount || !creatorWalletAddress) {
       return NextResponse.json(
@@ -219,35 +236,8 @@ export async function POST(request: NextRequest) {
 
     // Upload main image
     if (mainImageFile) {
-      const bytes = await mainImageFile.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      
-      const result = await new Promise((resolve, reject) => {
-        cloudinary.uploader.upload_stream(
-          {
-            folder: 'campaigns',
-            resource_type: 'image',
-          },
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          }
-        ).end(buffer);
-      });
-
-             if (result) {
-         images.push({
-           url: (result as { secure_url: string; public_id: string }).secure_url,
-           publicId: (result as { secure_url: string; public_id: string }).public_id,
-           caption: 'Main campaign image'
-         });
-       }
-    }
-
-    // Upload additional images
-    for (const imageFile of additionalImages) {
-      if (imageFile) {
-        const bytes = await imageFile.arrayBuffer();
+      try {
+        const bytes = await mainImageFile.arrayBuffer();
         const buffer = Buffer.from(bytes);
         
         const result = await new Promise((resolve, reject) => {
@@ -263,13 +253,50 @@ export async function POST(request: NextRequest) {
           ).end(buffer);
         });
 
-                 if (result) {
-           images.push({
-             url: (result as { secure_url: string; public_id: string }).secure_url,
-             publicId: (result as { secure_url: string; public_id: string }).public_id,
-             caption: ''
-           });
-         }
+        if (result) {
+          images.push({
+            url: (result as { secure_url: string; public_id: string }).secure_url,
+            publicId: (result as { secure_url: string; public_id: string }).public_id,
+            caption: 'Main campaign image'
+          });
+        }
+      } catch (uploadError) {
+        console.error('Error uploading main image:', uploadError);
+        // Continue without image upload if Cloudinary fails
+      }
+    }
+
+    // Upload additional images
+    for (const imageFile of additionalImages) {
+      if (imageFile) {
+        try {
+          const bytes = await imageFile.arrayBuffer();
+          const buffer = Buffer.from(bytes);
+          
+          const result = await new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream(
+              {
+                folder: 'campaigns',
+                resource_type: 'image',
+              },
+              (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+              }
+            ).end(buffer);
+          });
+
+          if (result) {
+            images.push({
+              url: (result as { secure_url: string; public_id: string }).secure_url,
+              publicId: (result as { secure_url: string; public_id: string }).public_id,
+              caption: ''
+            });
+          }
+        } catch (uploadError) {
+          console.error('Error uploading additional image:', uploadError);
+          // Continue without image upload if Cloudinary fails
+        }
       }
     }
 
@@ -352,8 +379,18 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Create campaign error:', error);
+    
+    // Log more detailed error information
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+    
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

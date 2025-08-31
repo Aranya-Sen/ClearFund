@@ -51,10 +51,22 @@ export function useApi<T = unknown>() {
       }
 
       const response = await fetch(url, config);
-      const data = await response.json();
+      
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      let data;
+      
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        // Handle non-JSON responses (like HTML error pages)
+        const text = await response.text();
+        console.error('Non-JSON response received:', text);
+        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || 'API request failed');
+        throw new Error(data?.error || `API request failed: ${response.status}`);
       }
 
       setState({ data, loading: false, error: null });
