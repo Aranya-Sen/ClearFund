@@ -12,7 +12,6 @@ export async function GET(
     const { id } = await params;
 
     const campaign = await Campaign.findById(id)
-      .populate('creator', 'firstName lastName email profileImage')
       .lean({ virtuals: true });
 
     if (!campaign) {
@@ -20,6 +19,35 @@ export async function GET(
         { error: 'Campaign not found' },
         { status: 404 }
       );
+    }
+
+    // Fetch creator data
+    let creator = {
+      firstName: 'Unknown',
+      lastName: 'Creator',
+      email: 'unknown@example.com',
+      profileImage: null
+    };
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((campaign as any).creator) {
+      try {
+        // Dynamic import to avoid build issues
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { default: User } = await import('@/models/User') as any;
+        
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const creatorData = await User.findById((campaign as any).creator)
+          .select('firstName lastName email profileImage')
+          .lean();
+        
+        if (creatorData) {
+          creator = creatorData;
+        }
+      } catch (creatorError) {
+        console.error('Error fetching creator:', creatorError);
+        // Use default creator data if fetch fails
+      }
     }
 
     // Add calculated fields
@@ -34,7 +62,7 @@ export async function GET(
         const timeDiff = endDate.getTime() - now.getTime();
         return Math.max(Math.ceil(timeDiff / (1000 * 3600 * 24)), 0);
       })(),
-
+      creator
     };
 
     return NextResponse.json({ campaign: campaignWithCalculations });

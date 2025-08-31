@@ -59,11 +59,35 @@ export async function GET(request: NextRequest) {
 
     // Get campaigns with creator information
     let campaigns = await Campaign.find(query)
-      .populate('creator', 'firstName lastName email profileImage')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean({ virtuals: true });
+
+    // Fetch creator data for all campaigns
+    const creatorIds = campaigns.map(campaign => campaign.creator).filter(Boolean);
+    const creatorsMap = new Map();
+    
+    if (creatorIds.length > 0) {
+      try {
+        // Dynamic import to avoid build issues
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { default: User } = await import('@/models/User') as any;
+        
+        const creators = await User.find({ _id: { $in: creatorIds } })
+          .select('firstName lastName email profileImage')
+          .lean();
+        
+        // Create a map for quick lookup
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        creators.forEach((creator: any) => {
+          creatorsMap.set(creator._id.toString(), creator);
+        });
+      } catch (creatorError) {
+        console.error('Error fetching creators:', creatorError);
+        // Continue with default creator data if fetch fails
+      }
+    }
 
     // Add calculated fields to each campaign
     campaigns = campaigns.map(campaign => {
@@ -78,10 +102,20 @@ export async function GET(request: NextRequest) {
       const timeDiff = endDate.getTime() - now.getTime();
       const daysRemaining = Math.max(Math.ceil(timeDiff / (1000 * 3600 * 24)), 0);
 
+      // Get creator data
+      const creatorData = campaign.creator ? creatorsMap.get(campaign.creator.toString()) : null;
+      const creator = creatorData || {
+        firstName: 'Unknown',
+        lastName: 'Creator',
+        email: 'unknown@example.com',
+        profileImage: null
+      };
+
       return {
         ...campaign,
         progressPercentage,
-        daysRemaining
+        daysRemaining,
+        creator
       };
     });
 
@@ -103,7 +137,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get total count for pagination (excluding fully funded campaigns unless showFullyFunded is true)
-    const allCampaigns = await Campaign.find(query).populate('creator', 'firstName lastName email profileImage').lean({ virtuals: true });
+    const allCampaigns = await Campaign.find(query).lean({ virtuals: true });
     let total = allCampaigns.length;
     
     if (!showFullyFunded) {
