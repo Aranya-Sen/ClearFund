@@ -9,8 +9,11 @@ import {
   EnvelopeIcon,
   MapPinIcon,
   ClockIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  UserIcon
 } from '@heroicons/react/24/outline';
+import AuthGuard from '../../components/AuthGuard';
+import { useBlockchain } from '../../hooks/useBlockchain';
 
 // Reveal component for scroll animations
 const Reveal = ({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) => {
@@ -79,6 +82,7 @@ const contactInfo = [
 ];
 
 export default function ContactPage() {
+  const { isConnected, account } = useBlockchain();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -117,7 +121,8 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <AuthGuard>
+      <div className="min-h-screen bg-gray-50">
       {/* Navigation */}
       <nav className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -138,9 +143,16 @@ export default function ContactPage() {
               <Link href="/support" className="text-gray-700 hover:text-purple-600 font-medium">Support</Link>
             </div>
             <div className="flex items-center space-x-4">
-              <Link href="/login" className="text-gray-700 hover:text-purple-600 font-medium">
-                Sign in
-              </Link>
+              {isConnected ? (
+                <Link href="/dashboard" className="flex items-center space-x-2 text-gray-700 hover:text-purple-600 font-medium">
+                  <UserIcon className="h-6 w-6" />
+                  <span>Dashboard</span>
+                </Link>
+              ) : (
+                <Link href="/login" className="text-gray-700 hover:text-purple-600 font-medium">
+                  Sign in
+                </Link>
+              )}
               <Link href="/create-campaign" className="bg-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-purple-700 transition-colors">
                 Create A Project
               </Link>
@@ -452,5 +464,6 @@ export default function ContactPage() {
         </div>
       </section>
     </div>
+    </AuthGuard>
   );
 }

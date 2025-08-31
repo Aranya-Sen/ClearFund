@@ -10,8 +10,11 @@ import {
   DocumentTextIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
+  UserIcon
 } from '@heroicons/react/24/outline';
+import AuthGuard from '../../components/AuthGuard';
+import { useBlockchain } from '../../hooks/useBlockchain';
 
 // Mock FAQ data
 const mockFAQs = [
@@ -80,6 +83,7 @@ const mockFAQs = [
 const categories = ["All", "General", "Campaign Creators", "Donors", "Technical"];
 
 export default function SupportPage() {
+  const { isConnected, account } = useBlockchain();
   const [activeCategory, setActiveCategory] = useState("All");
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
   const [contactForm, setContactForm] = useState({
@@ -106,7 +110,8 @@ export default function SupportPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <AuthGuard>
+      <div className="min-h-screen bg-gray-50">
       {/* Navigation */}
       <nav className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -236,9 +241,16 @@ export default function SupportPage() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <Link href="/login" className="text-gray-700 hover:text-blue-600 font-medium">
-                Sign in
-              </Link>
+              {isConnected ? (
+                <Link href="/dashboard" className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 font-medium">
+                  <UserIcon className="h-6 w-6" />
+                  <span>Dashboard</span>
+                </Link>
+              ) : (
+                <Link href="/login" className="text-gray-700 hover:text-blue-600 font-medium">
+                  Sign in
+                </Link>
+              )}
               <Link href="/create-campaign" className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors">
                 Create A Project
               </Link>
@@ -478,5 +490,6 @@ export default function SupportPage() {
         </div>
       </div>
     </div>
+    </AuthGuard>
   );
 }
