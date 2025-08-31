@@ -2,6 +2,8 @@ import mongoose from 'mongoose';
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://aranyasen993_db_user:<db_password>@cluster0.pxdxdkf.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
 
+console.log('MongoDB URI (masked):', MONGODB_URI ? '***URI_SET***' : '***URI_NOT_SET***');
+
 if (!MONGODB_URI) {
   throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
 }
@@ -15,7 +17,10 @@ if (!cached) {
 }
 
 async function dbConnect() {
+  console.log('Attempting to connect to MongoDB...');
+  
   if (cached.conn) {
+    console.log('Using cached database connection');
     return cached.conn;
   }
 
@@ -24,14 +29,18 @@ async function dbConnect() {
       bufferCommands: false,
     };
 
+    console.log('Creating new database connection...');
     cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+      console.log('Database connected successfully');
       return mongoose;
     });
   }
 
   try {
     cached.conn = await cached.promise;
+    console.log('Database connection established');
   } catch (e) {
+    console.error('Database connection error:', e);
     cached.promise = null;
     throw e;
   }

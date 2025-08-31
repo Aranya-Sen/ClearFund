@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import Campaign from '@/models/Campaign';
 // import User from '@/models/User'; // Temporarily disabled for build
 import cloudinary from '@/lib/cloudinary';
+import mongoose from 'mongoose';
 
 // GET - Retrieve all campaigns
 export async function GET(request: NextRequest) {
@@ -123,8 +124,11 @@ export async function GET(request: NextRequest) {
 
 // POST - Create new campaign
 export async function POST(request: NextRequest) {
+  console.log('POST /api/campaigns - Starting campaign creation...');
   try {
+    console.log('Connecting to database...');
     await dbConnect();
+    console.log('Database connected successfully');
 
     // Check content type to handle both JSON and FormData
     const contentType = request.headers.get('content-type') || '';
@@ -195,7 +199,7 @@ export async function POST(request: NextRequest) {
 
     // Temporary creator object for build
     const creator = {
-      _id: 'temp-creator-id',
+      _id: new mongoose.Types.ObjectId('507f1f77bcf86cd799439011'), // Temporary hardcoded ObjectId
       firstName: 'Temporary',
       lastName: 'Creator',
       email: 'temp@example.com',
@@ -271,7 +275,7 @@ export async function POST(request: NextRequest) {
     const milestonesData = JSON.parse(formData.get('milestones') as string || '[]');
 
     // Create campaign
-    const campaign = new Campaign({
+    const campaignData = {
       title,
       description,
       shortDescription,
@@ -293,19 +297,39 @@ export async function POST(request: NextRequest) {
       milestones: milestonesData,
       blockchainData: {
         campaignId: blockchainCampaignId,
-        contractAddress: process.env.CONTRACT_ADDRESS || '',
+        contractAddress: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '',
         totalTransactions: 0
       },
       status: 'active' // Start as active since it's on blockchain
-    });
+    };
+
+    console.log('Campaign data to save:', JSON.stringify(campaignData, null, 2));
+    
+    const campaign = new Campaign(campaignData);
 
     try {
       await campaign.save();
       console.log('Campaign saved to database successfully:', campaign._id);
     } catch (error) {
       console.error('Error saving campaign to database:', error);
+      
+      // Log more detailed error information
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
+      
+      // Check if it's a validation error
+      if (error && typeof error === 'object' && 'errors' in error) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        console.error('Validation errors:', (error as any).errors);
+      }
+      
       return NextResponse.json(
-        { error: 'Failed to save campaign to database' },
+        { 
+          error: 'Failed to save campaign to database',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        },
         { status: 500 }
       );
     }
