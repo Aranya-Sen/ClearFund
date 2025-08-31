@@ -80,7 +80,14 @@ export async function GET(request: NextRequest) {
       return {
         ...campaign,
         progressPercentage,
-        daysRemaining
+        daysRemaining,
+        // Add default creator info if not populated
+        creator: campaign.creator || {
+          firstName: 'Unknown',
+          lastName: 'Creator',
+          email: 'unknown@example.com',
+          profileImage: null
+        }
       };
     });
 

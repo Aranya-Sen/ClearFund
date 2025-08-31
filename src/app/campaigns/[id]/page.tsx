@@ -588,6 +588,19 @@ export default function CampaignDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-10">
+            {/* Back Button */}
+            <div className="mb-6">
+              <Link
+                href="/campaigns"
+                className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium transition-colors"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Back to Campaigns
+              </Link>
+            </div>
+            
             {/* Campaign Image */}
             <div className="relative">
               <img
@@ -876,15 +889,25 @@ export default function CampaignDetailPage() {
                   </div>
                 </div>
                 
-                <button
-                  onClick={handleDonate}
-                  disabled={isDonating || !isConnected || blockchainExists === false}
-                  className="w-full bg-blue-600 text-white py-5 px-8 rounded-xl font-semibold hover:bg-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isDonating ? 'Processing...' : 
-                   blockchainExists === false ? 'Donations Disabled' :
-                   isConnected ? 'Donate Now' : 'Connect Wallet to Donate'}
-                </button>
+                {(() => {
+                  // Check if campaign is fully funded
+                  const isFullyFunded = campaign && campaign.milestones && campaign.milestones.length > 0
+                    ? campaign.milestones.reduce((sum, milestone) => sum + milestone.targetAmount, 0) <= campaign.currentAmount
+                    : campaign && campaign.currentAmount >= campaign.goalAmount;
+                  
+                  return (
+                    <button
+                      onClick={handleDonate}
+                      disabled={isDonating || !isConnected || blockchainExists === false || isFullyFunded}
+                      className="w-full bg-blue-600 text-white py-5 px-8 rounded-xl font-semibold hover:bg-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isDonating ? 'Processing...' : 
+                       blockchainExists === false ? 'Donations Disabled' :
+                       isFullyFunded ? 'Funding Goal Reached' :
+                       isConnected ? 'Donate Now' : 'Connect Wallet to Donate'}
+                    </button>
+                  );
+                })()}
                 
                 {blockchainError && blockchainError.includes('circuit breaker') && (
                   <div className="space-y-2 mt-3">

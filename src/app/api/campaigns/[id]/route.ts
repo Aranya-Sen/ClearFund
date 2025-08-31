@@ -33,7 +33,15 @@ export async function GET(
         const now = new Date();
         const timeDiff = endDate.getTime() - now.getTime();
         return Math.max(Math.ceil(timeDiff / (1000 * 3600 * 24)), 0);
-      })()
+      })(),
+      // Add default creator info if not populated
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      creator: (campaign as any).creator || {
+        firstName: 'Unknown',
+        lastName: 'Creator',
+        email: 'unknown@example.com',
+        profileImage: null
+      }
     };
 
     return NextResponse.json({ campaign: campaignWithCalculations });
