@@ -148,6 +148,24 @@ export default function CampaignDetailPage() {
     
     setIsCheckingBlockchain(true);
     try {
+      // Use the campaign's specific contract address if available
+      if (campaign?.blockchainData?.contractAddress) {
+        // Import the new function
+        const { getContractWithAddress } = await import('../../../utils/contracts');
+        const contract = getContractWithAddress(campaign.blockchainData.contractAddress);
+        
+        if (contract) {
+          // Try to get campaign data from the specific contract
+          const campaignData = await contract.campaigns(blockchainCampaignId);
+          if (campaignData && campaignData.creator !== '0x0000000000000000000000000000000000000000') {
+            setBlockchainExists(true);
+            await checkVerifiedMilestones(blockchainCampaignId);
+            return;
+          }
+        }
+      }
+      
+      // Fallback to default contract
       await getCampaign(blockchainCampaignId);
       setBlockchainExists(true);
       

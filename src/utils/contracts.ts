@@ -20,3 +20,23 @@ export const getContractWithProvider = () => {
   }
   return null;
 };
+
+// New function to get contract with specific address
+export const getContractWithAddress = (contractAddress: string) => {
+  if (typeof window !== 'undefined') {
+    const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL || 'https://sepolia.infura.io/v3/');
+    return new ethers.Contract(contractAddress, ClearFundABI, provider);
+  }
+  return null;
+};
+
+// New function to get contract with signer and specific address
+export const getContractWithSignerAndAddress = async (contractAddress: string) => {
+  if (typeof window !== 'undefined' && window.ethereum) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const provider = new ethers.BrowserProvider(window.ethereum as any);
+    const signer = await provider.getSigner();
+    return new ethers.Contract(contractAddress, ClearFundABI, signer);
+  }
+  return null;
+};
