@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
-// import User from '@/models/User'; // Temporarily disabled for build
+// import User from '@/models/User';
 import { verifyOTP } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
@@ -17,37 +17,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Temporarily disabled for build - User model import issue
-    // const { default: User } = await import('@/models/User');
+    // Dynamic import to avoid build issues
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { default: User } = await import('@/models/User') as any;
 
     // Find temporary user
-    // const tempUser = await User.findById(tempUserId);
-    // if (!tempUser) {
-    //   return NextResponse.json(
-    //     { error: 'Invalid or expired verification session' },
-    //     { status: 400 }
-    //   );
-    // }
+    const tempUser = await User.findById(tempUserId);
+    if (!tempUser) {
+      return NextResponse.json(
+        { error: 'Invalid or expired verification session' },
+        { status: 400 }
+      );
+    }
 
     // Verify OTP
-    // const isValidOTP = verifyOTP(tempUser.emailOTP, otp, tempUser.emailOTPExpiry);
-    // if (!isValidOTP) {
-    //   return NextResponse.json(
-    //     { error: 'Invalid or expired OTP' },
-    //     { status: 400 }
-    //   );
-    // }
+    const isValidOTP = verifyOTP(tempUser.emailOTP, otp, tempUser.emailOTPExpiry);
+    if (!isValidOTP) {
+      return NextResponse.json(
+        { error: 'Invalid or expired OTP' },
+        { status: 400 }
+      );
+    }
 
     // Mark email as verified
-    // tempUser.emailVerified = true;
-    // tempUser.emailOTP = null;
-    // tempUser.emailOTPExpiry = null;
-    // await tempUser.save();
+    tempUser.emailVerified = true;
+    tempUser.emailOTP = null;
+    tempUser.emailOTPExpiry = null;
+    await tempUser.save();
 
-    // Temporary response for build
     return NextResponse.json({
-      message: 'Email verified successfully (temporary)',
-      email: 'temp@example.com'
+      message: 'Email verified successfully',
+      email: tempUser.email
     });
 
   } catch (error) {

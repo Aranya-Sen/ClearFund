@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Campaign from '@/models/Campaign';
-// import User from '@/models/User'; // Temporarily disabled for build
+// import User from '@/models/User';
 import cloudinary from '@/lib/cloudinary';
 import mongoose from 'mongoose';
 
@@ -198,14 +198,19 @@ export async function POST(request: NextRequest) {
     // }
 
     // Temporary creator object for build
-    const creator = {
-      _id: new mongoose.Types.ObjectId('507f1f77bcf86cd799439011'), // Temporary hardcoded ObjectId
-      firstName: 'Temporary',
-      lastName: 'Creator',
-      email: 'temp@example.com',
-      walletAddress: creatorWalletAddress.toLowerCase(),
-      isActive: true
-    };
+    // Dynamic import to avoid build issues
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { default: User } = await import('@/models/User') as any;
+    
+    // Find creator in database
+    const creator = await User.findOne({ walletAddress: creatorWalletAddress.toLowerCase() });
+    
+    if (!creator) {
+      return NextResponse.json(
+        { error: 'Creator not found. Please sign up first.' },
+        { status: 404 }
+      );
+    }
 
     // Handle image uploads
     const images: Array<{ url: string; publicId: string; caption: string }> = [];
