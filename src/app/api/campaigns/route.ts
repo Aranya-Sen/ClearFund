@@ -7,8 +7,11 @@ import mongoose from 'mongoose';
 
 // GET - Retrieve all campaigns
 export async function GET(request: NextRequest) {
+  console.log('GET /api/campaigns - Starting campaigns fetch...');
   try {
+    console.log('Connecting to database...');
     await dbConnect();
+    console.log('Database connected successfully');
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -18,6 +21,16 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const creator = searchParams.get('creator');
     const showFullyFunded = searchParams.get('showFullyFunded') === 'true';
+
+    console.log('Query parameters:', {
+      page,
+      limit,
+      category,
+      status,
+      search,
+      creator,
+      showFullyFunded
+    });
 
     const skip = (page - 1) * limit;
 
@@ -46,7 +59,6 @@ export async function GET(request: NextRequest) {
 
     // Get campaigns with creator information
     let campaigns = await Campaign.find(query)
-      .populate('creator', 'firstName lastName email profileImage')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -115,8 +127,18 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Get campaigns error:', error);
+    
+    // Log more detailed error information
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+    
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
