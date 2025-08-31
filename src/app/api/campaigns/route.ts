@@ -59,6 +59,7 @@ export async function GET(request: NextRequest) {
 
     // Get campaigns with creator information
     let campaigns = await Campaign.find(query)
+      .populate('creator', 'firstName lastName email profileImage')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -80,14 +81,7 @@ export async function GET(request: NextRequest) {
       return {
         ...campaign,
         progressPercentage,
-        daysRemaining,
-        // Add default creator info if not populated
-        creator: campaign.creator || {
-          firstName: 'Unknown',
-          lastName: 'Creator',
-          email: 'unknown@example.com',
-          profileImage: null
-        }
+        daysRemaining
       };
     });
 
@@ -109,7 +103,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get total count for pagination (excluding fully funded campaigns unless showFullyFunded is true)
-    const allCampaigns = await Campaign.find(query).lean({ virtuals: true });
+    const allCampaigns = await Campaign.find(query).populate('creator', 'firstName lastName email profileImage').lean({ virtuals: true });
     let total = allCampaigns.length;
     
     if (!showFullyFunded) {
@@ -243,7 +237,6 @@ export async function POST(request: NextRequest) {
     //   );
     // }
 
-    // Temporary creator object for build
     // Dynamic import to avoid build issues
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { default: User } = await import('@/models/User') as any;
